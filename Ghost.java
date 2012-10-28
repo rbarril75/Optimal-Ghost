@@ -103,7 +103,7 @@ public class Ghost {
 			move = 1;
 			currMover = "User";
 			currWord = "";
-			human = false;
+			human = true;
 		}
 		
 		void begin(char arg) {
@@ -319,24 +319,7 @@ public class Ghost {
 	
 	public static void main(String[] args) {
 		Trie trie = createTrie("WORD.LST2.txt");
-		solveTrie(trie);
-		Node h = trie.root.children.get(args[0].charAt(0));
-		System.out.print("MAXPATHS: ");
-		for (int i = 0; i < h.maxLosingPaths.size(); i++) {
-			System.out.print(h.maxLosingPaths.get(i).myChar + " ");
-		}
-		System.out.println("");
-		System.out.print("COMPGOALS: ");
-		for (int i = 0; i < h.compGoals.size(); i++) {
-			System.out.print(h.compGoals.get(i).myChar + " ");
-		}	
-		System.out.println("");
-		System.out.print("USERGOALS: ");
-		for (int i = 0; i < h.userGoals.size(); i++) {
-			System.out.print(h.userGoals.get(i).myChar + " ");
-		}	
-		System.out.println("");
-		
+		solveTrie(trie);		
 		Game game = new Game(trie);
 		game.begin(args[0].charAt(0));
 	}
