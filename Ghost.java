@@ -106,7 +106,7 @@ public class Ghost {
 			human = true;
 		}
 		
-		void begin(char arg) {
+		void begin() {
 			while (winner == -1) {
 				char c;
 				if (move % 2 == 1) {
@@ -321,6 +321,6 @@ public class Ghost {
 		Trie trie = createTrie("WORD.LST2.txt");
 		solveTrie(trie);		
 		Game game = new Game(trie);
-		game.begin(args[0].charAt(0));
+		game.begin();
 	}
 }
