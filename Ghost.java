@@ -108,6 +108,9 @@ public class Ghost {
 				
 				Map<Character, Node> children = triePtr.children;
 				
+				currWord += c;
+				System.out.println("Word so far is " + currWord);
+				
 				if (!children.containsKey(c) || children.get(c).maxDepth < 4) {
 					winner = (currMover.equals("User")) ? 1 : 0;
 					if (winner == 1) 
@@ -117,8 +120,6 @@ public class Ghost {
 					continue;				
 				}
 				
-				currWord += c;
-				System.out.println("Word so far is " + currWord);
 				triePtr = children.get(c);
 				if (triePtr.terminal) {
 					winner = (currMover.equals("User")) ? 1 : 0;
