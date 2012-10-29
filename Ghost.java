@@ -78,7 +78,6 @@ public class Ghost {
 	static class Game {
 		User user;
 		Comp comp;
-		Comp2 comp2;
 		Node triePtr;
 		int winner;
 		int move;
@@ -89,7 +88,6 @@ public class Ghost {
 		Game(Trie trie) {
 			user = new User();
 			comp = new Comp();
-			comp2 = new Comp2();
 			triePtr = trie.root;
 			winner = -1;
 			move = 1;
