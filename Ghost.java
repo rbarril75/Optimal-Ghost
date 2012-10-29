@@ -7,12 +7,7 @@
 //
 
 import java.io.*;
-import java.util.Scanner;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
 
 public class Ghost {
 	
@@ -77,7 +72,7 @@ public class Ghost {
 				children.get(word.charAt(0)).insertWord(word.substring(1));
 			}
 		}
-							  
+		
 		void addChild(Character c, Node node) {
 			children.put(c, node);
 		}
@@ -109,29 +104,30 @@ public class Ghost {
 		void begin() {
 			while (winner == -1) {
 				char c;
-				if (move % 2 == 1) {
-					if (human)
-						c = user.move();
-					else {
-						if (move == 1)
-							c = arg;
-						else
-							c = comp2.move(triePtr);
-					}
-				}
+				if (move % 2 == 1)
+					c = user.move();
 				else
 					c = comp.move(triePtr);
 				
 				System.out.println(currMover + " moves " + c);
-
+				
 				Map<Character, Node> children = triePtr.children;
-				if (!children.containsKey(c) || children.get(c).maxDepth < 4) {
+				if (!children.containsKey(c)) {
 					winner = (currMover.equals("User")) ? 1 : 0;
 					if (winner == 1) 
 						System.out.println("Invalid word. Computer wins.");
 					else 
 						System.out.println("Invalid word. User wins.");
 					continue;
+				}
+				
+				if (children.get(c).maxDepth < 4) {
+					winner = (currMover.equals("User")) ? 1 : 0;
+					if (winner == 1) 
+						System.out.println("No valid word longer than 3 letters can be extended from this word. Computer wins.");
+					else 
+						System.out.println("No valid word longer than 3 letters can be extended from this word. User wins.");
+					continue;				
 				}
 				
 				currWord += c;
@@ -179,9 +175,9 @@ public class Ghost {
 				System.out.println("Comp1 choosing from " + numGoals + " goals.");
 				return node.compGoals.get(rand.nextInt(numGoals)).myChar;
 			}
-
+			
 			int numMaxLosingPaths = node.maxLosingPaths.size();
-
+			
 			return node.maxLosingPaths.get(rand.nextInt(numMaxLosingPaths)).myChar;
 		}
 	}
@@ -197,7 +193,7 @@ public class Ghost {
 			}
 			
 			int nuMmaxLosingPaths = node.maxLosingPaths.size();
-
+			
 			return node.maxLosingPaths.get(rand.nextInt(nuMmaxLosingPaths)).myChar;
 		}
 	}
@@ -205,7 +201,7 @@ public class Ghost {
 	static void solveTrie(Trie trie) {
 		solveTrie(trie.root);
 	}
-
+	
 	// Sets whether this node is a computer (P2) or User (P1) goal. Returns depth of furthest goal leaf.
 	static int solveTrie(Node node) {
 		boolean isEvenNode = (node.depth % 2 == 0);
@@ -229,7 +225,7 @@ public class Ghost {
 				}
 				else {
 					node.compGoals.add(n);
-				
+					
 					// if the user cannot choose a user goal, he chooses the (computer-winning) path(s) that forces the maximal game length
 					// node.maxLosingPaths holds these path(s)
 					if (node.maxLosingPaths.size() == 0) {
@@ -266,7 +262,7 @@ public class Ghost {
 				}
 				else {
 					node.userGoals.add(n);
-				
+					
 					// if the computer cannot choose a computer goal, he chooses the (user-winning) path(s) that forces the maximal game length
 					// node.maxLosingPaths holds these path(s)
 					if (node.maxLosingPaths.size() == 0) {
@@ -303,7 +299,7 @@ public class Ghost {
 	/* Insert words from dictionary into a trie. */
 	static Trie createTrie(String filename) {
 		Trie trie = new Trie();
-											  
+		
 		try {
 			BufferedReader buf = new BufferedReader(new FileReader(filename));
 			String line = null;
@@ -318,8 +314,8 @@ public class Ghost {
 	}
 	
 	public static void main(String[] args) {
-		Trie trie = createTrie("WORD.LST2.txt");
-		solveTrie(trie);		
+		Trie trie = createTrie("WORD.LST.txt");
+		solveTrie(trie);
 		Game game = new Game(trie);
 		game.begin();
 	}
