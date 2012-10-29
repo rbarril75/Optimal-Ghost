@@ -107,16 +107,8 @@ public class Ghost {
 				System.out.println(currMover + " moves " + c);
 				
 				Map<Character, Node> children = triePtr.children;
-				if (!children.containsKey(c)) {
-					winner = (currMover.equals("User")) ? 1 : 0;
-					if (winner == 1) 
-						System.out.println("Invalid word. Computer wins.");
-					else 
-						System.out.println("Invalid word. User wins.");
-					continue;
-				}
 				
-				if (children.get(c).maxDepth < 4) {
+				if (!children.containsKey(c) || children.get(c).maxDepth < 4) {
 					winner = (currMover.equals("User")) ? 1 : 0;
 					if (winner == 1) 
 						System.out.println("No valid word longer than 3 letters can be extended from this word. Computer wins.");
