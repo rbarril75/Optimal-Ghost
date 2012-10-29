@@ -1,10 +1,7 @@
-//
+/*
 //  Ghost.java
-//  
-//
 //  Created by Ryan Barril on 10/26/12.
-//  Copyright 2012 __MyCompanyName__. All rights reserved.
-//
+*/
 
 import java.io.*;
 import java.util.*;
@@ -179,22 +176,6 @@ public class Ghost {
 			int numMaxLosingPaths = node.maxLosingPaths.size();
 			
 			return node.maxLosingPaths.get(rand.nextInt(numMaxLosingPaths)).myChar;
-		}
-	}
-	
-	static class Comp2 {
-		char move(Node node) {
-			Random rand = new Random();
-			
-			int numGoals = node.userGoals.size();
-			if (numGoals > 0) {
-				System.out.println("Comp2 choosing from " + numGoals + " goals.");
-				return node.userGoals.get(rand.nextInt(numGoals)).myChar;
-			}
-			
-			int nuMmaxLosingPaths = node.maxLosingPaths.size();
-			
-			return node.maxLosingPaths.get(rand.nextInt(nuMmaxLosingPaths)).myChar;
 		}
 	}
 	
