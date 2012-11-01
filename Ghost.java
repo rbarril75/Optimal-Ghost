@@ -1,7 +1,10 @@
-/*
+//
 //  Ghost.java
+//  
+//
 //  Created by Ryan Barril on 10/26/12.
-*/
+//  Copyright 2012 __MyCompanyName__. All rights reserved.
+//
 
 import java.io.*;
 import java.util.*;
@@ -10,34 +13,27 @@ public class Ghost {
 	
 	static class Trie {
 		Node root;
-		int numWords;
 		
 		Trie() {
 			root = new Node(null, 0);
 		}
 		
 		void insertWord(String word) {
-			if (!root.children.containsKey(word.charAt(0))) {
-				Node newNode = new Node(word.charAt(0), 1);
-				root.addChild(word.charAt(0), newNode);
-				newNode.insertWord(word.substring(1));
-			}
-			else {
-				root.children.get(word.charAt(0)).insertWord(word.substring(1));
-			}
+			root.insertWord(word);
 		}
 	}
 	
 	static class Node {
 		Map<Character, Node> children;
-		boolean terminal; // indicates if this node represents a char ending a word (of length >= 4). This node is a leaf.
+		boolean terminal; // indicates if this node represents a char ending a word (of length >= 4), i.e. a leaf
 		int depth; // distance from root
-		int maxDepth; // distance of lowest leaf in tree rooted at this node from trie root
+		int maxDepth; // depth of lowest leaf in tree rooted at this node
 		boolean compGoal;
-		int maxDepthToGoal;
-		List<Node> compGoals;
-		List<Node> userGoals;
-		List<Node> maxLosingPaths;
+		int depthOfUserGoal; // depth of lowest user goal in sub-tree rooted at this node
+		int depthOfCompGoal; // depth of lowest user goal in sub-tree rooted at this node
+		List<Node> compGoals; // list of children designated computer (P2) goals
+		List<Node> userGoals; // list of children designated user (P1) goals
+		List<Node> maxLosingPaths; // holds children node(s) that could be taken by losing player to force maximal game length
 		Character myChar;
 		
 		Node(Character myChar, int depth) {
@@ -45,6 +41,9 @@ public class Ghost {
 			terminal = false;
 			this.depth = depth;
 			maxDepth = depth;
+			compGoal = (depth % 2 == 0);
+			int depthOfUserGoal = -1;
+			int depthOfCompGoal = -1;
 			compGoals = new ArrayList<Node>();
 			userGoals = new ArrayList<Node>();
 			maxLosingPaths = new ArrayList<Node>();
@@ -63,11 +62,12 @@ public class Ghost {
 				Node newNode = new Node(word.charAt(0), depth + 1);
 				addChild(word.charAt(0), newNode);
 				newNode.insertWord(word.substring(1));
-				maxDepth = (maxDepth > depth + word.length()) ? maxDepth : depth + word.length();
 			}
 			else {
 				children.get(word.charAt(0)).insertWord(word.substring(1));
 			}
+			
+			maxDepth = (maxDepth > depth + word.length()) ? maxDepth : depth + word.length();
 		}
 		
 		void addChild(Character c, Node node) {
@@ -93,7 +93,7 @@ public class Ghost {
 			move = 1;
 			currMover = "User";
 			currWord = "";
-			human = true;
+			human = false;
 		}
 		
 		void begin() {
@@ -107,11 +107,16 @@ public class Ghost {
 				System.out.println(currMover + " moves " + c);
 				
 				Map<Character, Node> children = triePtr.children;
+				if (!children.containsKey(c)) {
+					winner = (currMover.equals("User")) ? 1 : 0;
+					if (winner == 1) 
+						System.out.println("Invalid word. Computer wins.");
+					else 
+						System.out.println("Invalid word. User wins.");
+					continue;
+				}
 				
-				currWord += c;
-				System.out.println("Word so far is " + currWord);
-				
-				if (!children.containsKey(c) || children.get(c).maxDepth < 4) {
+				if (children.get(c).maxDepth < 4) {
 					winner = (currMover.equals("User")) ? 1 : 0;
 					if (winner == 1) 
 						System.out.println("No valid word longer than 3 letters can be extended from this word. Computer wins.");
@@ -120,6 +125,8 @@ public class Ghost {
 					continue;				
 				}
 				
+				currWord += c;
+				System.out.println("Word so far is " + currWord);
 				triePtr = children.get(c);
 				if (triePtr.terminal) {
 					winner = (currMover.equals("User")) ? 1 : 0;
@@ -153,7 +160,7 @@ public class Ghost {
 		}
 	}
 	
-	/* The computer first tries to choose a computer goal node. If there aren't any, choose among paths that force maximal game length. */
+	// the computer first tries to choose a computer goal node. If there aren't any, choose among paths that force maximal game length.
 	static class Comp {
 		char move(Node node) {			
 			Random rand = new Random();
@@ -174,55 +181,39 @@ public class Ghost {
 		solveTrie(trie.root);
 	}
 	
-	// Sets whether this node is a computer (P2) or User (P1) goal. Returns depth of furthest goal leaf.
-	static int solveTrie(Node node) {
+	// sets whether this node is a computer (P2) or user (P1) goal
+	static void solveTrie(Node node) {
 		boolean isEvenNode = (node.depth % 2 == 0);
 		
 		if (node.children.isEmpty()) {
 			if (node.depth >= 4) // only count 4+ length strings as goals
 				node.compGoal = !isEvenNode;
-			return node.depth;
+			
+			if (isEvenNode) node.depthOfUserGoal = node.depth;
+			else node.depthOfCompGoal = node.depth;
+			
+			return;
 		}
 		
-		node.compGoal = isEvenNode; // non-leaf initialization
+		// node.compGoal = isEvenNode; // non-leaf initialization (done in constructor instead)
 		
 		for (Node n : node.children.values()) {
-			int depth = solveTrie(n);
+			solveTrie(n);
 			if (isEvenNode) { // it is the user's turn
 				if (!n.compGoal) {
 					// if there is a user goal to be chosen, this node is a user goal as well
 					// if no user goals can be chosen, this node is a computer goal
 					node.compGoal = false; 
+					node.depthOfUserGoal = (node.depthOfUserGoal > n.depthOfUserGoal) ? 
+					node.depthOfUserGoal : n.depthOfUserGoal;
 					node.userGoals.add(n);
 				}
 				else {
 					node.compGoals.add(n);
 					
 					// if the user cannot choose a user goal, he chooses the (computer-winning) path(s) that forces the maximal game length
-					// node.maxLosingPaths holds these path(s)
-					if (node.maxLosingPaths.size() == 0) {
-						node.maxLosingPaths.add(n);
-						node.maxDepthToGoal = depth;
-					}
-					else if (n.compGoals.size() != 0 && n.compGoals.size() <= node.maxLosingPaths.get(0).compGoals.size()) {
-						if (n.compGoals.size() == node.maxLosingPaths.get(0).compGoals.size()) {
-							// enter this branch if another node has an equal number of computer-winning paths
-							// if depth of other node is bigger, replace old node. if equal, join with old node. if smaller, ignore.
-							if (depth > node.maxDepthToGoal) {
-								node.maxLosingPaths.clear();
-								node.maxLosingPaths.add(n);
-								node.maxDepthToGoal = depth;
-							}
-							else if (depth == node.maxDepthToGoal)
-								node.maxLosingPaths.add(n);
-						}
-						else {
-							// another node has a smaller number of computer-winning paths. replace old node.
-							node.maxLosingPaths.clear();
-							node.maxLosingPaths.add(n);
-							node.maxDepthToGoal = depth;
-						}
-					}
+					// node.maxLosingPaths holds these path(s) and is updated here
+					updateMaxLosingPaths(node, n, "compGoals");
 				}
 			}
 			else { // it is the computer's turn
@@ -230,42 +221,106 @@ public class Ghost {
 					// if there is a computer goal to be chosen, this node is a computer goal as well
 					// if no computer goals can be chosen, this node is a user goal
 					node.compGoal = true;
+					node.depthOfCompGoal = (node.depthOfCompGoal > n.depthOfCompGoal) ?
+					node.depthOfCompGoal : n.depthOfCompGoal;
 					node.compGoals.add(n);
 				}
 				else {
 					node.userGoals.add(n);
 					
 					// if the computer cannot choose a computer goal, he chooses the (user-winning) path(s) that forces the maximal game length
-					// node.maxLosingPaths holds these path(s)
-					if (node.maxLosingPaths.size() == 0) {
-						node.maxLosingPaths.add(n);
-						node.maxDepthToGoal = depth;
-					}
-					else if (n.userGoals.size() != 0 && n.userGoals.size() <= node.maxLosingPaths.get(0).userGoals.size()) {
-						if (n.userGoals.size() == node.maxLosingPaths.get(0).userGoals.size()) {
-							// enter this branch if another node has an equal number of computer-winning paths
-							// if depth of other node is bigger, replace old node. if equal, join with old node. if smaller, ignore.
-							if (depth > node.maxDepthToGoal) {
-								node.maxLosingPaths.clear();
-								node.maxLosingPaths.add(n);
-								node.maxDepthToGoal = depth;
-							}
-							else if (depth == node.maxDepthToGoal) {
-								node.maxLosingPaths.add(n);
-							}
-						}
-						else {
-							// another node has a smaller number of computer-winning paths. replace old node.
-							node.maxLosingPaths.clear();
-							node.maxLosingPaths.add(n);
-							node.maxDepthToGoal = depth;
-						}
-					}
+					// node.maxLosingPaths holds these path(s) and is updated here
+					updateMaxLosingPaths(node, n, "userGoals");
 				}
 			}
-		}
+		}		
+	}
+	
+	// update paths a losing player could take at node to force maximal game length
+	static void updateMaxLosingPaths(Node node, Node n, String type) {
+		boolean typeComp = type.equals("compGoals");
+		List<Node> goals = (typeComp) ? n.compGoals : n.userGoals;
 		
-		return node.maxDepthToGoal; // return depth of (losing) goal leaf
+		if (node.maxLosingPaths.size() == 0) {
+			node.maxLosingPaths.add(n);
+			updateDepthOfGoal(node, n, type);
+		}
+		else if (goals.size() != 0) {
+			int numGoalsOfChild = (typeComp) ?
+			node.maxLosingPaths.get(0).compGoals.size() : node.maxLosingPaths.get(0).userGoals.size();
+			
+			int nodeDepthOfGoal = (typeComp) ? node.depthOfCompGoal : node.depthOfUserGoal;
+			int nDepthOfGoal = (typeComp) ? n.depthOfCompGoal : n.depthOfUserGoal;
+			
+			if (goals.size() == numGoalsOfChild) {
+				// enter this branch if another node has an equal number of computer-winning paths
+				// if depth of other node is bigger, replace old node. if equal, join with old node. if smaller, ignore.
+				if (nDepthOfGoal > nodeDepthOfGoal) {
+					node.maxLosingPaths.clear();
+					node.maxLosingPaths.add(n);
+					updateDepthOfGoal(node, n, type);
+				}
+				else if (nDepthOfGoal == nodeDepthOfGoal)
+					node.maxLosingPaths.add(n);
+			}
+			else if (goals.size() > numGoalsOfChild) {
+				// n has a larger number of computer-winning paths. replace old paths if n's paths are all longer than old paths.
+				if (allLongerPaths(n, node.maxLosingPaths, type)) {
+					node.maxLosingPaths.clear();
+					node.maxLosingPaths.add(n);
+					updateDepthOfGoal(node, n, type);			
+				}
+			}
+			else {
+				// another node has a smaller number of computer-winning paths. 
+				// replace old node if at least one of other node's paths is longer than one in old node
+				if (!allLongerPaths(node.maxLosingPaths, n, type)) {
+					node.maxLosingPaths.clear();
+					node.maxLosingPaths.add(n);
+					updateDepthOfGoal(node, n, type);
+				}
+			}
+		}		
+	}
+	
+	static void updateDepthOfGoal(Node node, Node n, String type) {
+		if (type.equals("compGoals")) node.depthOfCompGoal = n.depthOfCompGoal;
+		else node.depthOfUserGoal = n.depthOfUserGoal;
+	}
+	
+	// returns true if the goals of n have a greater than or equal depthOfGoal then the goals of every node in list
+	static boolean allLongerPaths(Node n, List<Node> list, String type) {
+		boolean typeComp = type.equals("compGoals");
+		
+		for (Node k : list) {
+			List<Node> kGoalList = (typeComp) ? k.compGoals : k.userGoals;
+			List<Node> nGoalList = (typeComp) ? n.compGoals : n.userGoals;
+			for (Node kGoal : kGoalList)
+				for (Node nGoal : nGoalList) {
+					int kGoalDepthOfGoal = (typeComp) ? kGoal.depthOfCompGoal : kGoal.depthOfUserGoal;
+					int nGoalDepthOfGoal = (typeComp) ? nGoal.depthOfCompGoal : nGoal.depthOfUserGoal;
+					if (kGoalDepthOfGoal > nGoalDepthOfGoal)
+						return false;
+				}
+		}
+		return true;
+	}
+	
+	// returns true if the goals of every node in list have a greater than or equal depthOfGoal than the goals of n
+	static boolean allLongerPaths(List<Node> list, Node n, String type) {	
+		boolean typeComp = type.equals("compGoals");
+		for (Node k : list) {
+			List<Node> kGoalList = (typeComp) ? k.compGoals : k.userGoals;
+			List<Node> nGoalList = (typeComp) ? n.compGoals : n.userGoals;
+			for (Node kGoal : kGoalList)
+				for (Node nGoal : nGoalList) {
+					int nGoalDepthOfGoal = (typeComp) ? nGoal.depthOfCompGoal : nGoal.depthOfUserGoal;
+					int kGoalDepthOfGoal = (typeComp) ? kGoal.depthOfCompGoal : kGoal.depthOfUserGoal;
+					if (nGoalDepthOfGoal > kGoalDepthOfGoal)
+						return false;
+				}
+		}
+		return true;
 	}
 	
 	/* Insert words from dictionary into a trie. */
